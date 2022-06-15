@@ -10,7 +10,7 @@
         public string NumSerie { get; set; } = string.Empty;
         public string TypePrestation { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
-        public string AskToClose { get; set; } = string.Empty;
+        public CloseStatus AskToClose { get; set; } = CloseStatus.open;
         public string Note { get; set; } = string.Empty;
         public string Statut { get; set; } = string.Empty;
         public string Priorite { get; set; } = string.Empty;
@@ -18,4 +18,7 @@
         public string File { get; set; } = string.Empty;
         public DateTime DateIncident { get; set; } = DateTime.Now;
     }
+    public enum CloseStatus{
+        open, askedToBeClosed, closed
+    };
 }
