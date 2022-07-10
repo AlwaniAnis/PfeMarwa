@@ -1,5 +1,6 @@
 ﻿
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Identity.Web.Resource;
@@ -17,28 +18,27 @@ namespace tracerapi.Controllers
     {
         private readonly DataContext _context;
         private readonly IMapper _mapper;
-        static readonly string[] scopeRequiredByApi = new string[] { "access_as_user" };
 
         public TacheController(DataContext context, IMapper mapper)
         {
             _context = context;
             _mapper = mapper;
         }
+        [Authorize]
 
-        [HttpGet]
-        public async Task<ActionResult<RS<Tache>>> Get(string type = "", int page = 1, int take = 10)
+        public async Task<ActionResult<RS<Tache>>> Get(string order = "asc", int page = 1, int take = 10)
         {
-            HttpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
-            string owner = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var res = await _context.Taches.Where(i => ( string.IsNullOrEmpty(type) || i.Type == type) && (string.IsNullOrEmpty(owner) || i.Owner == owner)
-        ).ToListAsync();
+            var res = order == "asc" ? await _context.Taches.OrderBy(a => a.DateTache).ToListAsync() :
+                await _context.Taches.OrderByDescending(a => a.DateTache).ToListAsync()
+                ;
+
 
             var result = new RS<Tache>();
             result.data = res.Skip((page - 1) * take).Take(take).ToList();
             result.total = res.Count;
             return Ok(result);
         }
-
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<ActionResult<Tache>> Get(int id)
         {
@@ -47,13 +47,16 @@ namespace tracerapi.Controllers
                 return BadRequest("Tache not found.");
             return Ok(tache);
         }
+        [Authorize]
 
         [HttpPost]
         public async Task<ActionResult<Tache>> Add([FromForm] TachePostModel model)
         {
-            HttpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
-            string owner = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            string owner = User.FindFirst(ClaimTypes.Name)?.Value;
+            string mail = User.FindFirst(ClaimTypes.Email)?.Value;
             var tache = _mapper.Map<Tache>(model);
+            tache.Compte = mail;
+
             if (model.NewFile != null)
             {
                 var newName = DateTime.Now.Ticks + Path.GetExtension(model.NewFile.FileName);
@@ -72,15 +75,13 @@ namespace tracerapi.Controllers
 
             return Ok(tache);
         }
+        [Authorize]
 
         [HttpPut]
         public async Task<ActionResult<Tache>> Update([FromForm] TachePutModel request)
         {
-            var dbrecord = await _context.Taches.FindAsync(request.Id);
-            if (dbrecord == null)
-                return BadRequest("incident not found.");
+           
             var record = _mapper.Map<Tache>(request);
-            dbrecord = record;
             if (request.NewFile != null)
             {
                 var newName = DateTime.Now.Ticks + Path.GetExtension(request.NewFile.FileName);
@@ -88,14 +89,16 @@ namespace tracerapi.Controllers
                 using (Stream stream = new FileStream(path, FileMode.Create))
                 {
                     await request.NewFile.CopyToAsync(stream);
-                    dbrecord.File = "Uploads/" + newName;
+                    record.File = "Uploads/" + newName;
                 }
             }
+            _context.Taches.Update(record);
 
             await _context.SaveChangesAsync();
 
-            return Ok(dbrecord);
+            return Ok(record);
         }
+        [Authorize]
 
         [HttpDelete("{id}")]
         public async Task<ActionResult<List<Tache>>> Delete(int id)

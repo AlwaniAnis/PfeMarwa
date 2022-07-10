@@ -13,6 +13,7 @@
         public string Type { get; set; } = string.Empty;
         public string Note { get; set; } = string.Empty;
         public string Owner { get; set; } = string.Empty;
+        public string Titre { get; set; }
 
         public IFormFile NewFile { get; set; } =null;
         public DateTime DateIntervention { get; set; } = DateTime.Now;

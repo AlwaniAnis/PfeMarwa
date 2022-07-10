@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using tracerapi.Data;
 
@@ -11,9 +12,10 @@ using tracerapi.Data;
 namespace tracerapi.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20220707003402_third")]
+    partial class third
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,28 +23,6 @@ namespace tracerapi.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
-
-            modelBuilder.Entity("tracerapi.Models.Event", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<DateTime>("End")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("Start")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Title")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Events");
-                });
 
             modelBuilder.Entity("tracerapi.Models.Incident", b =>
                 {
@@ -94,12 +74,6 @@ namespace tracerapi.Migrations
                     b.Property<string>("TypePrestation")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("UserEmail")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("closed")
-                        .HasColumnType("bit");
-
                     b.Property<decimal>("duration")
                         .HasColumnType("decimal(18,2)");
 
@@ -150,9 +124,6 @@ namespace tracerapi.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Sujet")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Titre")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Type")
@@ -207,14 +178,8 @@ namespace tracerapi.Migrations
                     b.Property<string>("Sujet")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Titre")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Type")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("closed")
-                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 

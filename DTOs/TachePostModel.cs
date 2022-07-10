@@ -4,6 +4,8 @@
     {
         public string Sujet { get; set; } = string.Empty;
         public string Compte { get; set; } = string.Empty;
+        public string Titre { get; set; }
+
         public DateTime? DateEcheance { get; set; }
         public DateTime? DateProchaineEcheance { get; set; }
         public DateTime? DateContrat { get; set; }

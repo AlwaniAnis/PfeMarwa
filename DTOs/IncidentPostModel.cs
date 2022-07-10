@@ -15,7 +15,9 @@
             public string Statut { get; set; } = string.Empty;
             public string Priorite { get; set; } = string.Empty;
             public string Owner { get; set; } = string.Empty;
-            public IFormFile NewFile { get; set; } = null;
+        public string UserEmail { get; set; }
+        public decimal duration { get; set; }
+        public IFormFile NewFile { get; set; } = null;
             public DateTime DateIncident { get; set; } = DateTime.Now;
         
     }

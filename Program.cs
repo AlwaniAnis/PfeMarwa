@@ -5,6 +5,7 @@ using Microsoft.Identity.Web;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using AutoMapper;
 using tracerapi.Extensions;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,7 +40,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.Use(async (context, next) =>
+{
+    var currentThreadCulture = (CultureInfo)Thread.CurrentThread.CurrentCulture.Clone();
+    currentThreadCulture.NumberFormat = NumberFormatInfo.InvariantInfo;
 
+    Thread.CurrentThread.CurrentCulture = currentThreadCulture;
+    Thread.CurrentThread.CurrentUICulture = currentThreadCulture;
+
+    await next();
+});
 app.UseHttpsRedirection();
 app.UseCors(c => c.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin() );
 app.UseAuthentication();

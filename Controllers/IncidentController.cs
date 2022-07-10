@@ -10,29 +10,28 @@ using tracerapi.Models;
 
 namespace tracerapi.Controllers
 {
-    [Authorize]
     [Route("api/[controller]")]
-
     [ApiController]
+    [RequiredScope(RequiredScopesConfigurationKey = "AzureAd:scopes")]
 
     public class IncidentController : ControllerBase
     {
         private readonly DataContext _context;
         private readonly IMapper _mapper;
-        static readonly string[] scopeRequiredByApi = new string[] { "access_as_user" };
-        static readonly string[] scopeRequiredByApi2 = new string[] { "validations.access" };
+        //static readonly string[] scopeRequiredByApi = new string[] { "access_as_user" };
+        //static readonly string[] scopeRequiredByApi2 = new string[] { "validations.access" };
 
         public IncidentController(DataContext context, IMapper mapper)
         {
             _context = context;
             _mapper = mapper;
         }
-
+        [Authorize]
         [HttpGet]
-        public async Task<ActionResult<RS<Incident>>> Get(string statut= "", string priority ="", int page=1, int take=10)
+        public async Task<ActionResult<RS<Incident>>> Get(string statut= "", string owner = "", string priority ="", int page=1, int take=10)
         {
-            HttpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
-            string owner = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            //HttpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
+            //string owner = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var res = await _context.Incidents.Where(i => (string.IsNullOrEmpty(priority) || i.Priorite == priority) && 
             (string.IsNullOrEmpty(statut) || i.Statut == statut) && (string.IsNullOrEmpty(owner) || i.Owner == owner)
             ).ToListAsync();
@@ -42,10 +41,11 @@ namespace tracerapi.Controllers
             result.total = res.Count;
             return Ok(result);
         }
+        [Authorize(Roles = "Admin")]
         [HttpGet("getValidations")]
         public async Task<ActionResult<RS<Incident>>> getValidations(string statut = "", string priority = "", int page = 1, int take = 10)
         {
-            HttpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi2);
+            //HttpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi2);
             var res = await _context.Incidents.Where(i =>i.AskToClose== CloseStatus.askedToBeClosed && (string.IsNullOrEmpty(priority) || i.Priorite == priority) &&
             (string.IsNullOrEmpty(statut) || i.Statut == statut) 
             ).ToListAsync();
@@ -55,6 +55,7 @@ namespace tracerapi.Controllers
             result.total = res.Count;
             return Ok(result);
         }
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<ActionResult<Incident>> Get(int id)
         {
@@ -63,13 +64,16 @@ namespace tracerapi.Controllers
                 return BadRequest("incident not found.");
             return Ok(incident);
         }
-
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<Incident>> AddIncident([FromForm]IncidentPostModel model)
         {
-            HttpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
-            string owner = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            //HttpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
+            string owner = User.FindFirst(ClaimTypes.GivenName)?.Value;
+            string user_email=User.FindFirst(ClaimTypes.Email)?.Value;
             var incident = _mapper.Map<Incident>(model);
+            incident.Owner = owner;
+            incident.UserEmail=user_email;
           if(model.NewFile!=null)
             {
                 var newName = DateTime.Now.Ticks + Path.GetExtension(model.NewFile.FileName);
@@ -88,15 +92,15 @@ namespace tracerapi.Controllers
 
             return Ok(incident);
         }
-
+        [Authorize]
         [HttpPut]
         public async Task<ActionResult<Incident>> UpdateIncident([FromForm] IncidentPutModel request)
         {
-            var dbincident = await _context.Incidents.FindAsync(request.Id);
-            if (dbincident == null)
-                return BadRequest("incident not found.");
+            //var dbincident = await _context.Incidents.FindAsync(request.Id);
+            //if (dbincident == null)
+            //    return BadRequest("incident not found.");
             var incident = _mapper.Map<Incident>(request);
-            dbincident = incident;
+            //dbincident = incident;
             if (request.NewFile != null)
             {
                 var newName = DateTime.Now.Ticks + Path.GetExtension(request.NewFile.FileName);
@@ -104,15 +108,15 @@ namespace tracerapi.Controllers
                 using (Stream stream = new FileStream(path, FileMode.Create))
                 {
                     await request.NewFile.CopyToAsync(stream);
-                    dbincident.File = "Uploads/" + newName;
+                    incident.File = "Uploads/" + newName;
                 }
             }
-
+            _context.Incidents.Update(incident);
             await _context.SaveChangesAsync();
 
-            return Ok(dbincident);
+            return Ok(incident);
         }
-
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<ActionResult<List<Incident>>> Delete(int id)
         {

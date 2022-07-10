@@ -10,38 +10,37 @@ using tracerapi.Models;
 
 namespace tracerapi.Controllers
 {
-    [Authorize]
 
     [Route("api/[controller]")]
+ 
 
     [ApiController]
-
+    [RequiredScope(RequiredScopesConfigurationKey = "AzureAd:scopes")]
     public class InterventionController : ControllerBase
     {
         private readonly DataContext _context;
         private readonly IMapper _mapper;
-        static readonly string[] scopeRequiredByApi = new string[] { "access_as_user" };
 
         public InterventionController(DataContext context, IMapper mapper)
         {
             _context = context;
             _mapper = mapper;
         }
-
+        [Authorize]
         [HttpGet]
-        public async Task<ActionResult<RS<Intervention>>> Get(string type = "", int page = 1, int take = 10)
+        public async Task<ActionResult<RS<Intervention>>> Get(string order = "asc", int page = 1, int take = 10)
         {
-            HttpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
-            string owner = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var res = await _context.Interventions.Where(i => (string.IsNullOrEmpty(type) || i.Type == type) && (string.IsNullOrEmpty(owner) || i.Owner == owner)
-        ).ToListAsync();
+            var res =order=="asc"? await _context.Interventions.OrderBy(a => a.DateIntervention).ToListAsync():
+                await _context.Interventions.OrderByDescending(a => a.DateIntervention).ToListAsync()
+                ;
+        
 
             var result = new RS<Intervention>();
             result.data = res.Skip((page - 1) * take).Take(take).ToList();
             result.total = res.Count;
             return Ok(result);
         }
-
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<ActionResult<Intervention>> Get(int id)
         {
@@ -50,13 +49,14 @@ namespace tracerapi.Controllers
                 return BadRequest("incident not found.");
             return Ok(intervention);
         }
-
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<Intervention>> Add([FromForm] InterventionPostModel model)
         {
-            HttpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
-            string owner = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            string owner = User.FindFirst(ClaimTypes.GivenName)?.Value;
+            string mail = User.FindFirst(ClaimTypes.Email)?.Value;
             var intervention = _mapper.Map<Intervention>(model);
+            intervention.Compte = mail;
             if (model.NewFile != null)
             {
                 var newName = DateTime.Now.Ticks + Path.GetExtension(model.NewFile.FileName);
@@ -75,15 +75,13 @@ namespace tracerapi.Controllers
 
             return Ok(intervention);
         }
-
+        [Authorize]
         [HttpPut]
         public async Task<ActionResult<Intervention>> Update([FromForm] InterventionPutModel request)
         {
-            var dbIntervention = await _context.Interventions.FindAsync(request.Id);
-            if (dbIntervention == null)
-                return BadRequest("Intervention not found.");
+          
             var intervention = _mapper.Map<Intervention>(request);
-            dbIntervention = intervention;
+       
             if (request.NewFile != null)
             {
                 var newName = DateTime.Now.Ticks + Path.GetExtension(request.NewFile.FileName);
@@ -91,14 +89,16 @@ namespace tracerapi.Controllers
                 using (Stream stream = new FileStream(path, FileMode.Create))
                 {
                     await request.NewFile.CopyToAsync(stream);
-                    dbIntervention.File = "Uploads/" + newName;
+                    intervention.File = "Uploads/" + newName;
                 }
             }
+            _context.Interventions.Update(intervention);
 
             await _context.SaveChangesAsync();
 
-            return Ok(dbIntervention);
+            return Ok(intervention);
         }
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<ActionResult<List<Intervention>>> Delete(int id)
         {
