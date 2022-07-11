@@ -49,10 +49,10 @@ namespace tracerapi.Controllers
         [HttpPost]
         public async Task<ActionResult<Event>> AddIncident([FromBody] Event model)
         {
+
+            var exist = _context.Events.Any(ev=>ev.Title==model.Title && ev.Start==model.Start && ev.End==model.End);
           
-       
-          
-            _context.Events.Add(model);
+if(!exist) _context.Events.Add(model);
 
             await _context.SaveChangesAsync();
 
